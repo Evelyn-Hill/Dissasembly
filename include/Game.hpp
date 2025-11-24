@@ -1,10 +1,14 @@
 #include <raylib.h>
+#include <string>
 
 class Game {
 public:
-	Game();
+	Game(int width, int height, std::string title);
 	~Game();
 
+	void Init();
 	void Run();
-private:	
+	void Shutdown();
+private:
+	std::string m_WindowTitle;
 };

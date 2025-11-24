@@ -39,6 +39,12 @@ add_executable(game ${PROJECT_SOURCE_DIR}/src/Main.cpp)
 # == GAME LIB ==
 add_library(game_lib ${SRCS})
 
+# Show all warnings, treat warnings as errors.
+target_compile_options(game_lib PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
+)
+
 # == LINK RAYLIB AND GAME == 
 target_link_libraries(game_lib raylib)
 
