@@ -1,3 +1,7 @@
 @echo off
-.\build\tests.exe
 
+IF EXIST .\build\tests.exe (
+	.\build\tests.exe
+) ELSE (
+	call "build.bat" test
+)
