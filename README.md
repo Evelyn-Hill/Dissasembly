@@ -12,6 +12,7 @@ We have premade build scripts setup for both windows `build.bat` and bash `build
 
 ### Build options
 `build test` will build and test the program.
+`build run` will run the game after the build is complete.
 
 ## Testing
 We have premade test scripts setup for both windows `test.bat` and bash `test.sh`. <br>
