@@ -6,3 +6,4 @@
 BASE_PATH: assets/
 
 gameJam_explosion_bgTest_v01.png bgtest
+ErrorTexture.png error

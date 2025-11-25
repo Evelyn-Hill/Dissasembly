@@ -7,18 +7,25 @@
 #include <filesystem>
 
 // Singleton Asset Manager class used to load and retrieve assets.
+// How the asset manager works:
+// The AssetManager is a fully thread safe singleton that can be accessed from anywhere in the project.
+// In your project root you must create two files. Startup.asset.txt and Background.asset.txt
+// the asset manager reads these files on startup and queues each of the listed assets to load.
+//
 // How the asset files work:
-// Each asset in the file is given a path (with no spaces) and a name that you can retrieve it by, space delimited.
-// Neither the asset path nor name can have a space in them.
+// Each asset file should begin with a BASE_PATH: <path> line. This line tells the asset manager where to look
+// for the following assets. This variable can be changed throughout the lifetime of the file.
+//
+// Each asset in the file is a path (with no spaces) and a name (with no spaces) that you can retrieve it by.
+// Neither the asset path nor name can have a space in them. DO NOT PUT SPACES!
 //
 // Example:
 // <myAsset/Path AssetName>
 //
-// At startup, the asset manager will read in first the startup file and load all of those assets, 
-// then on a background thread read the background asset file and begin loading 
-// each of those assets in a queue.
+// At startup, the asset manager will read in first the startup file and load all of those assets,
+// then on a background thread read the background asset file and begin loading each of those assets in a queue.
 //
-// You can also call `AppendBackgroundAsset(path, name)` at any tme to load an asset in the background.
+// You can call `GetBackgroundLoadProgress()` to retrieve the load progress of the background thread.
 
 
 struct AssetQueueItem {
@@ -33,20 +40,20 @@ using TexMap = std::unordered_map<std::string, Texture2D>;
 using MusicMap = std::unordered_map<std::string, Music>;
 
 public:
+	// Thread safe Singleton instance.
 	static AssetManager* GetInstance() {
-		//std::lock_guard<std::mutex> lock(m_Mtx);
+		std::lock_guard<std::mutex> lock(m_Mtx);
 		if (m_Instance == nullptr) {
 			m_Instance = new AssetManager();
 		}
 		return m_Instance;
 	}
+
+	// Thread Safe method to load an asset.
+	void LoadAsset(std::string path, std::string name);
 	
-	
-	void QueueAsset(AssetQueueItem qi, std::queue<AssetQueueItem>& loadQueue);
-	
-	void LoadQueue(std::queue<AssetQueueItem>& queue);
-	void LoadQueueThreaded(std::queue<AssetQueueItem>& queue);
-	
+	float GetBackgroundLoadProgress();
+
 	Texture2D GetTexture(std::string name);
 	Music* GetMusic(std::string name);
 	
@@ -77,8 +84,13 @@ private:
 	
 	std::unique_ptr<std::queue<AssetQueueItem>> m_StartupLoadQueue;
 	std::unique_ptr<std::queue<AssetQueueItem>> m_BackgroundLoadQueue;
+
+	float backgroundLoadProgress;
 	
 	void ParseAssetFile(std::string path, std::queue<AssetQueueItem>& loadQueue);
 	void ThreadSafeLoadQueue(std::queue<AssetQueueItem> queue);
+	void QueueAsset(AssetQueueItem qi, std::queue<AssetQueueItem>& loadQueue);
+	void LoadQueue(std::queue<AssetQueueItem>& queue);
+	void LoadQueueThreaded(std::queue<AssetQueueItem>& queue);
+	std::unique_ptr<std::queue<AssetQueueItem>>& GetBackgroundQueue();
 };
-

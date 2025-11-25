@@ -25,6 +25,36 @@ AssetManager::~AssetManager() {
 
 }
 
+// This is a thread safe method to load an asset.
+void AssetManager::LoadAsset(std::string path, std::string name) {
+	// PERF: I dont need to allocate here, for now its just easier to get the 
+	// extension if I do it this way -eph
+	std::filesystem::path p(path);
+	std::mutex mtx;
+
+	auto ext = p.extension();
+
+	if (ext == ".png") {
+		if (m_TexMap->contains(name)) {
+			std::cout << "Asset with name: " << name << " already exists!\n";
+			return;
+		}
+
+		Texture2D tex = LoadTexture(p.string().c_str());
+		if (m_TexMap == nullptr) {
+			m_TexMap = std::make_unique<TexMap>();
+		}
+		
+		mtx.lock();
+		m_TexMap->emplace(std::pair<std::string, Texture2D>(name, tex));
+		mtx.unlock();
+		std::cout << "Loaded texture: " << name << "\n";
+	}
+	else {
+		std::cout << "Unsupported file format: " << ext << "\n";
+	}
+}
+
 void AssetManager::QueueAsset(AssetQueueItem qi, std::queue<AssetQueueItem>& loadQueue) {
 	if(qi.name.empty() || qi.path.empty()) {
 		std::cout << "AssetQueueItem cannot be enqueued because it is not full\n";
@@ -36,22 +66,8 @@ void AssetManager::QueueAsset(AssetQueueItem qi, std::queue<AssetQueueItem>& loa
 void AssetManager::LoadQueue(std::queue<AssetQueueItem>& queue) {
 	while (!queue.empty()) {
 		auto qi = queue.front();
-		
 		auto ext = qi.path.extension();
-
-		if (ext == ".png") {
-			Texture2D tex = LoadTexture(qi.path.string().c_str());
-			if (m_TexMap == nullptr) {
-				m_TexMap = std::make_unique<TexMap>();
-			}
-
-			m_TexMap->emplace(std::pair<std::string, Texture2D>(qi.name, tex));
-			std::cout << "Loaded texture: " << qi.name << "\n";
-		} 
-		else {
-			std::cout << "Unsupported file format: " << ext << "\n";
-		}
-
+		LoadAsset(qi.path.string(), qi.name);
 		queue.pop();
 	}
 }
@@ -77,31 +93,19 @@ void AssetManager::ThreadSafeLoadQueue(std::queue<AssetQueueItem> queue) {
 	
 	mtx.lock();
 	loadState = BackgroundLoadState::LOADING;
+	backgroundLoadProgress = 0;
 	mtx.unlock();
+	
+	float loadIncrement = 1.0 / queue.size();
 
 	while (!queue.empty()) {
 		auto qi = queue.front();
-		
 		auto ext = qi.path.extension();
-
-		if (ext == ".png") {
-			Texture2D tex = LoadTexture(qi.path.string().c_str());
-			if (m_TexMap == nullptr) {
-				mtx.lock();
-				m_TexMap = std::make_unique<TexMap>();
-				mtx.unlock();
-			}
-			
-			mtx.lock();
-			m_TexMap->emplace(std::pair<std::string, Texture2D>(qi.name, tex));
-			mtx.unlock();
-			std::cout << "Loaded texture: " << qi.name << "\n";
-		} 
-		else {
-			std::cout << "Unsupported file format: " << ext << "\n";
-		}
-
+		LoadAsset(qi.path.string(), qi.name);
 		queue.pop();
+		mtx.lock();
+		backgroundLoadProgress += loadIncrement;
+		mtx.unlock();
 	}
 
 	mtx.lock();
@@ -110,12 +114,20 @@ void AssetManager::ThreadSafeLoadQueue(std::queue<AssetQueueItem> queue) {
 	std::cout << "Finished background loading" << std::endl;
 }
 
+
+std::unique_ptr<std::queue<AssetQueueItem>>& AssetManager::GetBackgroundQueue() {
+	return m_BackgroundLoadQueue;
+}
+
 Texture2D AssetManager::GetTexture(std::string name) {
+	if (!m_TexMap->contains(name)) {
+		return m_TexMap->at("error");
+	}
+
 	return m_TexMap->at(name);
 }
 
 void AssetManager::ParseAssetFile(std::string path, std::queue<AssetQueueItem>& loadQueue) {
-
 	std::ifstream file(path);
 	if (!file.is_open()) {
 		std::cout << "Could not open file: " << path << "\n";
@@ -145,6 +157,7 @@ void AssetManager::ParseAssetFile(std::string path, std::queue<AssetQueueItem>& 
 			}
 
 			basePath = tokens.at(1);
+			continue;
 		}
 
 		std::vector<std::string> tokens;
@@ -165,4 +178,8 @@ void AssetManager::ParseAssetFile(std::string path, std::queue<AssetQueueItem>& 
 		QueueAsset(qi, loadQueue);
 		lineCount++;
 	}
+}
+ 
+float AssetManager::GetBackgroundLoadProgress() {
+	return backgroundLoadProgress;
 }
