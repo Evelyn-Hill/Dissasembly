@@ -34,7 +34,7 @@ using MusicMap = std::unordered_map<std::string, Music>;
 
 public:
 	static AssetManager* GetInstance() {
-		std::lock_guard<std::mutex> lock(m_Mtx);
+		//std::lock_guard<std::mutex> lock(m_Mtx);
 		if (m_Instance == nullptr) {
 			m_Instance = new AssetManager();
 		}
@@ -45,6 +45,7 @@ public:
 	void QueueAsset(AssetQueueItem qi, std::queue<AssetQueueItem>& loadQueue);
 	
 	void LoadQueue(std::queue<AssetQueueItem>& queue);
+	void LoadQueueThreaded(std::queue<AssetQueueItem>& queue);
 	
 	Texture2D GetTexture(std::string name);
 	Music* GetMusic(std::string name);
@@ -54,7 +55,7 @@ public:
 		FINISHED,
 	};
 
-
+	BackgroundLoadState loadState = BackgroundLoadState::FINISHED;
 private:
 	AssetManager();
 	~AssetManager();
@@ -78,5 +79,6 @@ private:
 	std::unique_ptr<std::queue<AssetQueueItem>> m_BackgroundLoadQueue;
 	
 	void ParseAssetFile(std::string path, std::queue<AssetQueueItem>& loadQueue);
+	void ThreadSafeLoadQueue(std::queue<AssetQueueItem> queue);
 };
 

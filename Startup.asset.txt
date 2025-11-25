@@ -1,1 +1,8 @@
-assets/gameJam_explosion_bgTest_v01.png bgtest
+# This is a comment
+
+# Tells the asset manager where to look for files, this can be
+# changed throughout the file and you can think of each of these
+# calls as a "scope"
+BASE_PATH: assets/
+
+gameJam_explosion_bgTest_v01.png bgtest
