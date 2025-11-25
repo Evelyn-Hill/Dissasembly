@@ -28,9 +28,10 @@ add_subdirectory(vendor/gtest)
 # == INCLUDES == 
 include_directories(include/)
 
-# == SRCS == (ADD GAME SOURCE FILES HERE) 
+# == SRCS == (ADD GAME SOURCE FILES HERE)
 set(SRCS
 	src/Game.cpp
+    src/AssetManager.cpp
 )
 
 # == MAIN == 
