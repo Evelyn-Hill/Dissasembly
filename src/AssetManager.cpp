@@ -35,15 +35,16 @@ void AssetManager::LoadAsset(std::string path, std::string name) {
 	auto ext = p.extension();
 
 	if (ext == ".png") {
+		if (m_TexMap == nullptr) {
+			m_TexMap = std::make_unique<TexMap>();
+		}
+
 		if (m_TexMap->contains(name)) {
 			std::cout << "Asset with name: " << name << " already exists!\n";
 			return;
 		}
 
 		Texture2D tex = LoadTexture(p.string().c_str());
-		if (m_TexMap == nullptr) {
-			m_TexMap = std::make_unique<TexMap>();
-		}
 		
 		mtx.lock();
 		m_TexMap->emplace(std::pair<std::string, Texture2D>(name, tex));
@@ -96,7 +97,7 @@ void AssetManager::ThreadSafeLoadQueue(std::queue<AssetQueueItem> queue) {
 	backgroundLoadProgress = 0;
 	mtx.unlock();
 	
-	float loadIncrement = 1.0 / queue.size();
+	float loadIncrement = 1.0f / queue.size();
 
 	while (!queue.empty()) {
 		auto qi = queue.front();
